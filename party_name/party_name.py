@@ -8,6 +8,8 @@ from typing import List
 from botocore.exceptions import ClientError
 Base = declarative_base()
 
+AWS_REGION = 'ap-southeast-1'
+
 class PartyName(Base):
     __tablename__ = 'party_name'
 

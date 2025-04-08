@@ -24,7 +24,7 @@ import json
 # SQLAlchemy setup
 Base = declarative_base()
 
-
+AWS_REGION = 'ap-southeast-1'
 
 
 class PartyName(Base):
@@ -222,7 +222,7 @@ class PartyDirectoryProcessor:
             print(f'party {party}')
             party_info = self.query_party_id(party)
             self.process_sijil_specific_party(party,party_info)
-            #break
+            break
 
     def process_years(self, base_path:str,party_dir:str,party_info:PartyName):
         directories = self.navigator.list_directories(f"{base_path}/") #['years']

@@ -30,7 +30,7 @@ import json
 #Base = declarative_base()
 
 
-
+AWS_REGION = 'ap-southeast-1'
 
 # SQLAlchemy setup
 Base = declarative_base()

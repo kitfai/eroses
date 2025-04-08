@@ -10,11 +10,28 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Tuple
 import logging
+from logging.handlers import RotatingFileHandler
 from botocore.config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+log_file = 'alamat.log'
+max_bytes = 1024 * 1024  # 1 MB
+backup_count = 5  # Keep 5 backup files
+
+file_handler = RotatingFileHandler(
+    log_file,
+    maxBytes=max_bytes,
+    backupCount=backup_count
+)
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 import urllib.parse
 import time
 
@@ -647,6 +664,7 @@ def main():
     root_directory = 'Parti_Politik-Induk'''
     bucket_name = 'induk-account-training'
     root_directory = 'Parti_Politik-Induk_Modified'
+
     processor = PartyDirectoryProcessor(bucket_name, root_directory,db_connection)
     processor.process_parties(root_directory)
     #result = processor.process_all_parties()

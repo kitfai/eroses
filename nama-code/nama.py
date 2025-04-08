@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, Text, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from logging.handlers import RotatingFileHandler
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import pandas as pd
@@ -15,6 +16,22 @@ from botocore.config import Config
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+log_file = 'nama.log'
+max_bytes = 1024 * 1024  # 1 MB
+backup_count = 5  # Keep 5 backup files
+
+file_handler = RotatingFileHandler(
+    log_file,
+    maxBytes=max_bytes,
+    backupCount=backup_count
+)
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 import urllib.parse
 import time
 from enum import Enum
@@ -665,6 +682,7 @@ def main():
     root_directory = 'Parti_Politik-Induk'''
     bucket_name = 'induk-account-training'
     root_directory = 'Parti_Politik-Induk_Modified'
+
     processor = PartyDirectoryProcessor(bucket_name, root_directory,db_connection)
     processor.process_parties(root_directory)
     #result = processor.process_all_parties()

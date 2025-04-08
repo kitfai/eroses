@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import boto3
 from typing import List
+from logging.handlers import RotatingFileHandler
 from botocore.exceptions import ClientError
 Base = declarative_base()
 

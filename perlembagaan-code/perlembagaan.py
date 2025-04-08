@@ -61,7 +61,7 @@ class ExtractedPerlembagaanTable(Base):
     filename = Column(String(255))
     year_directory = Column(String(50))
     nama_pertubuhan = Column(String(150))
-    perlembagaan = Column(Text)
+    perlembagaan = Column(Text(length=16777215))
     party_name = Column(String(150), nullable=True)
     created_date = Column(DateTime, default=datetime.now)
     modified_date = Column(DateTime, default=datetime.now)

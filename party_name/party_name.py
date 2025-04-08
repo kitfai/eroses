@@ -90,7 +90,8 @@ def save_party_name(session, s3_party_name, party_name=None):
 
 def main():
     print('main')
-    sql_connection = "mysql+mysqlconnector://root:strong_password@127.0.0.1:3307/eroses_dev"
+    #sql_connection = "mysql+mysqlconnector://root:strong_password@127.0.0.1:3307/eroses_dev"
+    sql_connection = "mysql+mysqlconnector://admin:Eroses123@rds-erosesrdsinstance-bl01iw3u4yka.c1q0w0yu2dv3.ap-southeast-5.rds.amazonaws.com:3306/eroses_migration"
     engine = create_engine(sql_connection)
     Session = sessionmaker(bind=engine)
     Base.metadata.create_all(engine)

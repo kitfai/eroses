@@ -668,7 +668,8 @@ class PartyDirectoryProcessor:
 
 
 def main():
-    db_connection = "mysql+mysqlconnector://root:strong_password@127.0.0.1:3307/eroses_dev"
+    #db_connection = "mysql+mysqlconnector://root:strong_password@127.0.0.1:3307/eroses_dev"
+    db_connection = "mysql+mysqlconnector://admin:Eroses123@rds-erosesrdsinstance-bl01iw3u4yka.c1q0w0yu2dv3.ap-southeast-5.rds.amazonaws.com:3306/eroses_migration"
     '''bucket_name = 'digitization-migration'
     root_directory = 'Parti_Politik-Induk'''
     bucket_name = 'induk-account-training'

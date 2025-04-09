@@ -424,7 +424,11 @@ class PartyDirectoryProcessor:
         for party in parties_directories:  # process every year
             print(f'party {party}')
             party_info = self.query_party_id(party)
-            self.process_sijil_specific_party(party,party_info)
+            #self.process_sijil_specific_party(party,party_info)
+            try:
+                self.process_sijil_specific_party(party,party_info)
+            except Exception as e:
+                logger.error(f"Error in process_parties process: {str(e)}")
             #break
 
     def process_sijil_specific_party(self, party_dir: str, party_info:PartyName):
@@ -460,9 +464,12 @@ class PartyDirectoryProcessor:
         pdfs = self.navigator.list_pdfs(f"{base_path}/{year}/{sijil_name}/")
 
         for pdf in pdfs:
-            print(f"PDF: {pdf}")
-            print(f"Path: {base_path}/{year}/{sijil_name}/{pdf}")
-            self.process_pendaftaran_pdf(f"{base_path}/{year}/{sijil_name}/{pdf}", base_path, year, pdf,party_dir, party_info)
+            try:
+                print(f"PDF: {pdf}")
+                print(f"Path: {base_path}/{year}/{sijil_name}/{pdf}")
+                self.process_pendaftaran_pdf(f"{base_path}/{year}/{sijil_name}/{pdf}", base_path, year, pdf,party_dir, party_info)
+            except Exception as e:
+                logger.error(f"Error in process_pendaftaran_dir process: {str(e)}")
 
     def process_pendaftaran_pdf(self, path: str, base_path: str, year: str, pdf: str,party_dir: str, party_info:PartyName):
         region_name = 'ap-southeast-1'

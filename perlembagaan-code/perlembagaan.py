@@ -237,7 +237,10 @@ class PartyDirectoryProcessor:
         for party in parties_directories:  # process every year
             print(f'party {party}')
             party_info = self.query_party_id(party)
-            self.process_sijil_specific_party(party,party_info)
+            try:
+                self.process_sijil_specific_party(party,party_info)
+            except Exception as e:
+                logger.error(f"Error in process_parties process: {str(e)}")
             #break
 
     def process_years(self, base_path:str,party_dir:str,party_info:PartyName):
@@ -252,9 +255,11 @@ class PartyDirectoryProcessor:
 
 
         for perlembagaan_type_pdf in pdfs:
-            self.process_perlembagaan_file(base_path,year,perlembagaan_type_pdf,party_dir, party_info) #process bendera type
-            logger.info(f"Processed {perlembagaan_type_pdf}")
-
+            try:
+                self.process_perlembagaan_file(base_path,year,perlembagaan_type_pdf,party_dir, party_info) #process bendera type
+                logger.info(f"Processed {perlembagaan_type_pdf}")
+            except Exception as e:
+                logger.error(f"Error in process_perlembagaan_dir process: {str(e)}")
 
 
 

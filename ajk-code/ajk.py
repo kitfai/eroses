@@ -686,7 +686,11 @@ class PartyDirectoryProcessor:
         for party in parties_directories:  # process every year
             print(f'party {party}')
             party_info = self.query_party_id(party)
-            self.process_sijil_specific_party(party,party_info)
+            #self.process_sijil_specific_party(party,party_info)
+            try:
+                self.process_sijil_specific_party(party,party_info)
+            except Exception as e:
+                logger.error(f"Error in process_parties process: {str(e)}")
             #break
 
     def process_years(self, base_path: str, party_dir:str,party_info:PartyName):
@@ -711,9 +715,12 @@ class PartyDirectoryProcessor:
         pdfs = self.navigator.list_pdfs(f"{base_path}/{year}/{sijil_name}/")
 
         for pdf in pdfs:
-            print(f"PDF: {pdf}")
-            print(f"Path: {base_path}/{year}/{sijil_name}/{pdf}")
-            self.process_ajk_pdf(f"{base_path}/{year}/{sijil_name}/{pdf}", base_path, year, pdf)
+            try:
+                print(f"PDF: {pdf}")
+                print(f"Path: {base_path}/{year}/{sijil_name}/{pdf}")
+                self.process_ajk_pdf(f"{base_path}/{year}/{sijil_name}/{pdf}", base_path, year, pdf)
+            except Exception as e:
+                logger.error(f"Error in process_ajk_dir process: {str(e)}")
 
     def extract_party_name(self, blocks):
         """

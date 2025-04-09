@@ -115,7 +115,7 @@ class AJK(Base):
     jawatan = Column(String(100), nullable=False)
     nama = Column(String(255), nullable=False)
     no_kp = Column(String(100), nullable=True)
-    no_telefon = Column(String(100), nullable=True)
+    no_telefon = Column(String(600), nullable=True)
     alamat = Column(String(500), nullable=True)
     majikan = Column(String(255), nullable=True)
     tahun = Column(String(50), nullable=True)

@@ -119,7 +119,7 @@ class AJK(Base):
     alamat = Column(String(500), nullable=True)
     majikan = Column(String(255), nullable=True)
     tahun = Column(String(50), nullable=True)
-    pekerjaan = Column(String(255), nullable=True)
+    pekerjaan = Column(String(500), nullable=True)
     jantina = Column(String(50), nullable=True)
     confidence_score = Column(Float, nullable=True)
     party_name = Column(String(150))

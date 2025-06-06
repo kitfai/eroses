@@ -183,14 +183,9 @@ def extract_table_data(blocks, s3_path, db):
     successful_table_bils = set()
     flagged_for_review_cache = set()
 
-    document_with_partial_rows_flagged = 0
-    total_documents_with_problematic_rows = 0
-
     # --- PHASE 1: Extract data from successfully detected TABLES ---
     for page_num in sorted(pages.keys()):
         page = pages[page_num]
-
-        # I removed detection of current_section_state here because it is unreliable. State will ONLY be extracted from the address (raw_column_4_text), in which it can also check the address is valid in terms of structure.
 
         page_blocks_sorted = []
         for line_id, line in page['lines'].items():
@@ -203,12 +198,9 @@ def extract_table_data(blocks, s3_path, db):
 
         for block in page_blocks_sorted:
             if block['BlockType'] == 'LINE':
-
-                # To ignore irrelevant lines. If it's a "line" that could be an orphan record (handled in Phase 2), it will be caught there.
                 continue
-
             elif block['BlockType'] == 'TABLE':
-                table = block  # 'block' is now the table block
+                table = block
                 rows = {}
                 if 'Relationships' not in table:
                     continue
@@ -227,8 +219,7 @@ def extract_table_data(blocks, s3_path, db):
                                     for cell_rel in cell['Relationships']:
                                         if cell_rel['Type'] == 'CHILD':
                                             for word_id in cell_rel['Ids']:
-                                                word_block = page['words'].get(word_id) or page['lines'].get(
-                                                    word_id)
+                                                word_block = page['words'].get(word_id) or page['lines'].get(word_id)
                                                 if word_block and word_block['BlockType'] in ['WORD', 'LINE']:
                                                     cell_text += word_block['Text'] + " "
                                                     all_extracted_block_ids.add(word_block['Id'])
@@ -247,7 +238,7 @@ def extract_table_data(blocks, s3_path, db):
 
                 for i in range(start_idx, len(sorted_rows)):
                     row = sorted_rows[i]
-                    if not row or 1 not in row:  # Ensure the first column exists
+                    if not row or 1 not in row:
                         continue
 
                     raw_column_1_text = row.get(1, {}).get('text', '')
@@ -264,7 +255,6 @@ def extract_table_data(blocks, s3_path, db):
                     print(f"{Fore.BLUE}[DEBUG] ℹ️  raw_column_4_text: '{raw_column_4_text}'{Style.RESET_ALL}")
 
                     processed_first_cell = raw_column_1_text.strip()
-
                     bil = None
                     leftover_in_bil_col = ""
                     bil_match = re.match(r'^\s*(?:bil|no)?\s*\.?\s*(\d+)\.?\s*(.*)?$', processed_first_cell,
@@ -274,19 +264,16 @@ def extract_table_data(blocks, s3_path, db):
                         bil = bil_match.group(1)
                         leftover_in_bil_col = bil_match.group(2).strip()
                     else:
-                        continue  # Skip rows that don't have a valid BIL
+                        continue
 
                     if is_duplicate_in_branch_info(bil=bil, s3_path=s3_path, db=db):
-                        print(
-                            f"{Fore.CYAN}[SKIPPED] ⏩ Main Table row for bil {bil} at {s3_path} - already exists in BranchInfo.{Style.RESET_ALL}")
                         continue
 
                     extracted_rujukan_ppm_candidate = raw_column_2_text.strip()
                     if not extracted_rujukan_ppm_candidate:
                         extracted_rujukan_ppm_candidate = leftover_in_bil_col
 
-                    ppm_pattern = re.compile(r'(PPM/[A-Z0-9\s\-\./]+(?:[\s-]*\d+)?)',
-                                             re.IGNORECASE)
+                    ppm_pattern = re.compile(r'(PPM/[A-Z0-9\s\-\./]+(?:[\s-]*\d+)?)', re.IGNORECASE)
                     ppm_match = ppm_pattern.search(extracted_rujukan_ppm_candidate)
 
                     if ppm_match:
@@ -306,22 +293,16 @@ def extract_table_data(blocks, s3_path, db):
                         if len(parts) >= 2:
                             parsed_alamat_cawangan = parts[1]
 
-                    # --- State extraction from ADDRESS --
                     extracted_state_from_address = None
                     if parsed_alamat_cawangan:
                         _, state_from_address_temp = is_state(parsed_alamat_cawangan)
                         extracted_state_from_address = state_from_address_temp
 
-                    # The final state for this row's data is simply the one extracted from the address.
                     final_row_state_for_output = extracted_state_from_address
-
                     reason_list = []
 
-                    # Flag if state could not be determined from the address
                     if not final_row_state_for_output:
                         reason_list.append('Failed to determine state from address')
-
-                    # Regular validation checks
                     if not parsed_rujukan_ppm:
                         reason_list.append('Failed to extract rujukan_ppm')
                     if not parsed_nama_cawangan:
@@ -336,20 +317,13 @@ def extract_table_data(blocks, s3_path, db):
 
                     if is_concatenated_row or reason_list:
                         if is_already_flagged_for_review(bil=bil, s3_path=s3_path, page_number=page_num, db=db):
-                            print(
-                                f"{Fore.YELLOW}[SKIPPED] 🟡 Problematic Table row for bil {bil} on page {page_num} - already flagged for review (DB check).{Style.RESET_ALL}")
                             continue
 
                         if (bil, page_num) in flagged_for_review_cache:
-                            print(
-                                f"{Fore.YELLOW}[SKIPPED] 🟡 Problematic Table row for bil {bil} on page {page_num} - already flagged for review (cache check).{Style.RESET_ALL}")
                             continue
 
-                        # Log which line is getting flagged
                         flag_reason = ", ".join(
                             reason_list) if not is_concatenated_row else "Concatenated Row, " + ",".join(reason_list)
-                        print(
-                            f"{Fore.MAGENTA}[FLAGGING] 🚩 Table row BIL: '{bil}', Page: {page_num}, Row Index: {row.get(1, {}).get('row')}, Reason: '{flag_reason}'{Style.RESET_ALL}")
 
                         problematic_rows.append({
                             'page_number': page_num,
@@ -362,7 +336,7 @@ def extract_table_data(blocks, s3_path, db):
                             'parsed_rujukan_ppm': parsed_rujukan_ppm,
                             'parsed_nama_cawangan': parsed_nama_cawangan,
                             'parsed_alamat_cawangan': parsed_alamat_cawangan,
-                            'state': final_row_state_for_output,  # Use extracted state from address
+                            'state': final_row_state_for_output,
                             'reason': flag_reason
                         })
                         flagged_for_review_cache.add((bil, page_num))
@@ -378,7 +352,6 @@ def extract_table_data(blocks, s3_path, db):
                     successful_table_bils.add(bil)
 
     # --- PHASE 2: Secondary Pass - Fallback for orphan LINE blocks (Flag for review) ---
-    # Collect all orphan LINE blocks that were not part of a table
     orphan_line_blocks = []
     for pn in sorted(pages.keys()):
         page = pages[pn]
@@ -388,13 +361,10 @@ def extract_table_data(blocks, s3_path, db):
 
     orphan_line_blocks.sort(key=lambda b: (b.get('Page', 0), b['Geometry']['BoundingBox']['Top']))
 
-    # No last_known_global_state needed for orphan lines either. Extract state from address only.
     for line in orphan_line_blocks:
         line_text = line.get('Text', '').strip()
         page_num_orphan = line.get('Page', 0)
 
-        # Every orphan line is processed as a potential record.
-        # Regex for orphan lines
         line_match = re.match(
             r'^\s*(?:bil|no)?\s*\.?\s*(\d+)\.?\s*(PPM/[A-Z0-9\s\-\./]+(?:[\s-]*\d+)?)\s*(.*?)(?:\s+-\s*|(?=\s*(?:PPM|[A-Z]{2,}))|\s*$)(.*)$',
             line_text, flags=re.IGNORECASE
@@ -407,34 +377,24 @@ def extract_table_data(blocks, s3_path, db):
             parsed_alamat_cawangan = line_match.group(4).strip()
 
             if bil in successful_table_bils:
-                print(
-                    f"{Fore.CYAN}[SKIPPED] ⏩ Fallback LINE for bil {bil} at {s3_path} on page {page_num_orphan} - already successfully extracted from table.{Style.RESET_ALL}")
                 continue
 
             if is_already_flagged_for_review(bil=bil, s3_path=s3_path, page_number=page_num_orphan, db=db):
-                print(
-                    f"{Fore.YELLOW}[SKIPPED] 🟡 Fallback LINE for bil {bil} at {s3_path} on page {page_num_orphan} - already flagged for review (DB check).{Style.RESET_ALL}")
                 continue
 
             if (bil, page_num_orphan) in flagged_for_review_cache:
-                print(
-                    f"{Fore.YELLOW}[SKIPPED] 🟡 Fallback LINE for bil {bil} on page {page_num_orphan} - already flagged for review (cache check).{Style.RESET_ALL}")
                 continue
 
-            # Attempt to extract state from address for validation/output
             extracted_state_from_address = None
             if parsed_alamat_cawangan:
                 _, state_from_address_temp = is_state(parsed_alamat_cawangan)
                 extracted_state_from_address = state_from_address_temp
 
             final_row_state = extracted_state_from_address
-
             reason_list = []
 
-            # Flag if state could not be determined from the address
             if not final_row_state:
                 reason_list.append('Failed to determine state from address')
-
             if not parsed_rujukan_ppm:
                 reason_list.append('Failed to extract rujukan_ppm')
             if not parsed_nama_cawangan:
@@ -443,15 +403,13 @@ def extract_table_data(blocks, s3_path, db):
                 reason_list.append('Failed to extract alamat_cawangan')
 
             flag_reason = "Failed to extract from table, " + ", ".join(reason_list)
-            print(
-                f"{Fore.MAGENTA}[FLAGGING] 🚩 Fallback LINE for BIL: '{bil}', Page: {page_num_orphan}, Reason: '{flag_reason}'{Style.RESET_ALL}")
 
             problematic_rows.append({
                 'page_number': page_num_orphan,
                 'row_index': None,
                 'bil': bil,
                 'raw_column_1_text': line_text,
-                'raw_column_2_text': '',  # No separate raw columns for orphan lines
+                'raw_column_2_text': '',
                 'raw_column_3_text': '',
                 'raw_column_4_text': '',
                 'parsed_rujukan_ppm': parsed_rujukan_ppm,
@@ -465,14 +423,12 @@ def extract_table_data(blocks, s3_path, db):
 
     overall_confidence = calculate_extraction_confidence(blocks, all_extracted_block_ids)
 
-    # Determine the status of the current document for reporting
-    if len(problematic_rows) > 0:
-        total_documents_with_problematic_rows = 1  # Mark this document as having *any* problematic rows
+    # Determine document status flags
+    has_problematic_rows = len(problematic_rows) > 0
+    has_successful_rows = len(all_data) > 0
+    is_partial = has_problematic_rows and has_successful_rows
 
-        if len(all_data) > 0:
-            document_with_partial_rows_flagged = 1  # And if it also has successfully extracted rows, it's 'partial'
-
-    return all_data, overall_confidence, problematic_rows, document_with_partial_rows_flagged, total_documents_with_problematic_rows
+    return all_data, overall_confidence, problematic_rows, is_partial, has_problematic_rows
 
 
 def extract_table_from_pdf(bucket_name, document_key, db_session):
@@ -688,7 +644,7 @@ def get_all_kmc_paths(bucket_name, min_year=2015):
             else:
                 print(f"{Fore.YELLOW}🟡 Party {party} has KMC but no year directories{Style.RESET_ALL}")
         else:
-            print(f"{Fore.RED}{Style.DIM}⛔ Party {party} has no Cawangan directory{Style.RESET_ALL}")
+            print(f"{Fore.RED}{Style.DIM}❌ Party {party} has no Cawangan directory{Style.RESET_ALL}")
 
     print(f"{Fore.CYAN}{Style.BRIGHT}📊 Parties with valid KMC data: {len(party_with_valid_kmc_data)}{Style.RESET_ALL}\n")
     return kmc_paths
@@ -715,7 +671,7 @@ def print_party_summary(party_name, stats):
 
         print(f"    {Fore.GREEN}{Style.DIM}✅ Fully Successful (All rows extracted): {stats['documents_fully_successful']} ({fully_successful_pct:.2f}%){Style.RESET_ALL}")
         print(f"    {Fore.YELLOW}{Style.DIM}🔶 Partially Successful (Some rows flagged): {stats['documents_partially_successful']} ({partial_success_pct:.2f}%){Style.RESET_ALL}")
-        print(f"    {Fore.RED}{Style.DIM}❌ Failed:{Fore.RED} {stats['documents_failed']} ({failed_pct:.2f}%){Style.RESET_ALL}")
+        print(f"    {Fore.RED}{Style.DIM}❌ Failed (Flagged as unprocessed):{Fore.RED} {stats['documents_failed']} ({failed_pct:.2f}%){Style.RESET_ALL}")
     else:
         print(f"  {Fore.LIGHTRED_EX}🚨 No documents were processed{Style.RESET_ALL}")
 
@@ -887,7 +843,7 @@ def main():
 
             try:
                 with Session_factory() as db_session:
-                    extracted_data, confidence, problematic_rows, doc_is_partially_flagged, doc_has_problematic_rows = extract_table_from_pdf(
+                    extracted_data, confidence, problematic_rows, is_partial, has_problematic_rows = extract_table_from_pdf(
                         BUCKET_NAME, doc_key, db_session)
 
                     # Update party stats
@@ -908,16 +864,19 @@ def main():
                         save_to_database(extracted_data, DB_CONNECTION_STRING, doc_key)
                         total_extracted_rows += len(extracted_data)
 
-                        if problematic_rows:
+                        # Document is considered fully successful ONLY if:
+                        # 1. We have extracted data
+                        # 2. There are NO problematic rows
+                        if not problematic_rows:
+                            total_documents_processed_fully_successful += 1
+                            party_stats[party_name]['documents_fully_successful'] += 1
+                            processed_keys.add(doc_key)
+                        else:
                             save_problematic_rows(problematic_rows, DB_CONNECTION_STRING, doc_key)
                             total_problematic_rows_cumulative += len(problematic_rows)
                             flagged_for_review_keys.add(doc_key)
                             total_documents_with_problematic_rows += 1
                             party_stats[party_name]['documents_partially_successful'] += 1
-                        else:
-                            total_documents_processed_fully_successful += 1
-                            party_stats[party_name]['documents_fully_successful'] += 1
-                            processed_keys.add(doc_key)
 
                     else:  # No extracted data
                         if problematic_rows:
